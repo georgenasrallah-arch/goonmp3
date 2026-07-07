@@ -66,10 +66,20 @@ async function runYtDlp(url: string) {
   const lines = metadata.stdout.split(/\r?\n/).filter(Boolean);
   const [title, thumbnail, duration] = lines;
 
+  const ffmpegPath = "C:/Users/georg/AppData/Local/Temp/ffmpeg/ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe";
+  const ffprobePath = "C:/Users/georg/AppData/Local/Temp/ffmpeg/ffmpeg-master-latest-win64-gpl/bin/ffprobe.exe";
+
   const download = await spawnYtDlp([
     "--no-playlist",
+    "--extract-audio",
+    "--audio-format",
+    "mp3",
+    "--audio-quality",
+    "0",
     "--format",
     "bestaudio/best",
+    "--ffmpeg-location",
+    "C:/Users/georg/AppData/Local/Temp/ffmpeg/ffmpeg-master-latest-win64-gpl/bin",
     "--output",
     outputPath,
     url,
