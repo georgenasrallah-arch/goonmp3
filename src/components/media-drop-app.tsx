@@ -65,6 +65,41 @@ const defaultAnalysis: MediaAnalysis = {
   downloadUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
 };
 
+function inferDirectMediaType(url: string): "mp3" | "mp4" | null {
+  const normalized = url.trim().toLowerCase();
+  const audioExtensions = [".mp3", ".wav", ".flac", ".m4a", ".aac", ".ogg", ".opus"];
+  const videoExtensions = [".mp4", ".m4v", ".webm", ".mov", ".avi", ".mkv"];
+
+  if (audioExtensions.some((extension) => normalized.endsWith(extension))) {
+    return "mp3";
+  }
+
+  if (videoExtensions.some((extension) => normalized.endsWith(extension))) {
+    return "mp4";
+  }
+
+  return null;
+}
+
+function buildDirectMediaAnalysis(url: string): MediaAnalysis {
+  const fileName = decodeURIComponent(url.split("/").pop() ?? "media") || "media";
+  const title = fileName.replace(/\.[^.]+$/, "") || "Downloaded media";
+  const mediaType = inferDirectMediaType(url) ?? "mp3";
+
+  return {
+    id: `direct-${Date.now()}`,
+    title,
+    thumbnail:
+      "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=900&q=80",
+    duration: "—",
+    source: "Direct link",
+    description: "This link points to a downloadable media file and will be opened directly.",
+    audioOptions: defaultAnalysis.audioOptions,
+    videoOptions: defaultAnalysis.videoOptions,
+    downloadUrl: url,
+  };
+}
+
 export function MediaDropApp() {
   const [theme, setTheme] = useState<ThemeMode>("dark");
   const [url, setUrl] = useState("");
@@ -192,10 +227,23 @@ export function MediaDropApp() {
     }
 
     const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+    const directMediaType = inferDirectMediaType(trimmedUrl);
 
     setIsAnalyzing(true);
     setError(null);
     try {
+      if (directMediaType) {
+        const directAnalysis = buildDirectMediaAnalysis(trimmedUrl);
+        setAnalysis(directAnalysis);
+        setStep("preview");
+        setSelectedFormat(directMediaType);
+        setSelectedAudioBitrate(192);
+        setSelectedVideoResolution("720p");
+        addHistoryEntry(directAnalysis);
+        showToast("Direct media link detected. Download is ready.");
+        return;
+      }
+
       if (apiBaseUrl) {
         const response = await fetch(`${apiBaseUrl}/api/analyze`, {
           method: "POST",
@@ -223,7 +271,7 @@ export function MediaDropApp() {
         ...defaultAnalysis,
         title: trimmedUrl.length > 28 ? `${trimmedUrl.slice(0, 28)}…` : trimmedUrl,
         source: "Demo provider",
-        description: "A public demo preview for the requested media link.",
+        description: "Direct media links are supported. Paste a file URL such as .mp3 or .mp4 to download it.",
       };
       setAnalysis(fallback);
       setStep("preview");
