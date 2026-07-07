@@ -30,6 +30,7 @@ type MediaAnalysis = {
   audioOptions: AudioOption[];
   videoOptions: VideoOption[];
   downloadUrl: string;
+  extension?: string;
 };
 
 type HistoryItem = {
@@ -295,7 +296,7 @@ export function MediaDropApp() {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)/g, "") || "download";
-    const extension = selectedFormat === "mp3" ? "mp3" : "mp4";
+    const extension = analysis.extension || (selectedFormat === "mp3" ? "mp3" : "mp4");
     const link = document.createElement("a");
     link.href = analysis.downloadUrl;
     link.download = `${safeTitle}.${extension}`;

@@ -8,6 +8,7 @@ import fs from "node:fs";
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
 const downloadsDir = path.join(process.cwd(), "downloads");
+const publicBaseUrl = (process.env.PUBLIC_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? process.env.API_BASE_URL ?? "http://127.0.0.1:3001").replace(/\/$/, "");
 
 fs.mkdirSync(downloadsDir, { recursive: true });
 
@@ -89,7 +90,7 @@ async function runYtDlp(url: string) {
     title: title || "Extracted media",
     thumbnail: thumbnail || "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?auto=format&fit=crop&w=900&q=80",
     duration: duration || "—",
-    downloadUrl: `/downloads/${outputFile}`,
+    downloadUrl: `${publicBaseUrl}/downloads/${outputFile}`,
     extension,
   };
 }
