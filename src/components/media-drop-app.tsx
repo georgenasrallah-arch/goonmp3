@@ -62,7 +62,7 @@ const defaultAnalysis: MediaAnalysis = {
     { label: "MP4 · 720p", resolution: "720p", estimatedSizeMb: 24.8 },
     { label: "MP4 · 1080p", resolution: "1080p", estimatedSizeMb: 43.1 },
   ],
-  downloadUrl: "/downloads/demo.mp4",
+  downloadUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
 };
 
 export function MediaDropApp() {
@@ -191,34 +191,39 @@ export function MediaDropApp() {
       return;
     }
 
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
 
     setIsAnalyzing(true);
     setError(null);
     try {
-      const response = await fetch(`${apiBaseUrl}/api/analyze`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: trimmedUrl }),
-      });
-      if (!response.ok) {
-        throw new Error("Unable to analyze the supplied URL.");
+      if (apiBaseUrl) {
+        const response = await fetch(`${apiBaseUrl}/api/analyze`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: trimmedUrl }),
+        });
+        if (!response.ok) {
+          throw new Error("Unable to analyze the supplied URL.");
+        }
+        const payload = (await response.json()) as MediaAnalysis;
+        setAnalysis(payload);
+        setStep("preview");
+        setSelectedFormat("mp3");
+        setSelectedAudioBitrate(payload.audioOptions[1]?.bitrate ?? 192);
+        setSelectedVideoResolution(payload.videoOptions[1]?.resolution ?? "720p");
+        addHistoryEntry(payload);
+        showToast("Analysis complete. Choose your preferred format.");
+        queryClient.invalidateQueries({ queryKey: ["media-analysis"] });
+        return;
       }
-      const payload = (await response.json()) as MediaAnalysis;
-      setAnalysis(payload);
-      setStep("preview");
-      setSelectedFormat("mp3");
-      setSelectedAudioBitrate(payload.audioOptions[1]?.bitrate ?? 192);
-      setSelectedVideoResolution(payload.videoOptions[1]?.resolution ?? "720p");
-      addHistoryEntry(payload);
-      showToast("Analysis complete. Choose your preferred format.");
-      queryClient.invalidateQueries({ queryKey: ["media-analysis"] });
+
+      throw new Error("No public API configured.");
     } catch {
       const fallback = {
         ...defaultAnalysis,
         title: trimmedUrl.length > 28 ? `${trimmedUrl.slice(0, 28)}…` : trimmedUrl,
         source: "Demo provider",
-        description: "A local fallback preview for the requested media link.",
+        description: "A public demo preview for the requested media link.",
       };
       setAnalysis(fallback);
       setStep("preview");
@@ -226,7 +231,7 @@ export function MediaDropApp() {
       setSelectedAudioBitrate(fallback.audioOptions[1].bitrate);
       setSelectedVideoResolution(fallback.videoOptions[1].resolution);
       addHistoryEntry(fallback);
-      showToast("Using the local preview flow for this URL.");
+      showToast("Using the public demo flow for this URL.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -234,6 +239,20 @@ export function MediaDropApp() {
 
   const handleDownload = () => {
     if (!analysis) return;
+    const safeTitle = (analysis.title || "download")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "") || "download";
+    const extension = selectedFormat === "mp3" ? "mp3" : "mp4";
+    const link = document.createElement("a");
+    link.href = analysis.downloadUrl;
+    link.download = `${safeTitle}.${extension}`;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
     setDownloadProgress(0);
     setDownloadComplete(false);
     setDownloading(true);
