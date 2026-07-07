@@ -230,7 +230,7 @@ export function MediaDropApp() {
       return;
     }
 
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.trim() || "http://localhost:3001";
     const directMediaType = inferDirectMediaType(trimmedUrl);
 
     setIsAnalyzing(true);
