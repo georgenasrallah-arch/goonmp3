@@ -70,6 +70,10 @@ function inferDirectMediaType(url: string): "mp3" | "mp4" | null {
   const audioExtensions = [".mp3", ".wav", ".flac", ".m4a", ".aac", ".ogg", ".opus"];
   const videoExtensions = [".mp4", ".m4v", ".webm", ".mov", ".avi", ".mkv"];
 
+  if (normalized.includes("youtube.com") || normalized.includes("youtu.be") || normalized.includes("soundcloud.com") || normalized.includes("vimeo.com")) {
+    return null;
+  }
+
   if (audioExtensions.some((extension) => normalized.endsWith(extension))) {
     return "mp3";
   }
@@ -271,7 +275,7 @@ export function MediaDropApp() {
         ...defaultAnalysis,
         title: trimmedUrl.length > 28 ? `${trimmedUrl.slice(0, 28)}…` : trimmedUrl,
         source: "Demo provider",
-        description: "Direct media links are supported. Paste a file URL such as .mp3 or .mp4 to download it.",
+        description: "This app can download direct file URLs such as .mp3 or .mp4. YouTube and other platform pages are not direct downloadable files.",
       };
       setAnalysis(fallback);
       setStep("preview");
