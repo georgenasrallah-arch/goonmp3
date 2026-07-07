@@ -1,5 +1,5 @@
 export async function analyzeMedia(url: string) {
-  const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+  const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL ?? "https://goonmp3-api.loca.lt").trim();
 
   const response = await fetch(`${apiBaseUrl}/api/analyze`, {
     method: "POST",

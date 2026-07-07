@@ -8,9 +8,22 @@ import fs from "node:fs";
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
 const downloadsDir = path.join(process.cwd(), "downloads");
-const publicBaseUrl = (process.env.PUBLIC_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? process.env.API_BASE_URL ?? "http://127.0.0.1:3001").replace(/\/$/, "");
 
 fs.mkdirSync(downloadsDir, { recursive: true });
+
+function resolvePublicBaseUrl(req: express.Request) {
+  const configured = process.env.PUBLIC_BASE_URL ?? process.env.NEXT_PUBLIC_API_URL ?? process.env.API_BASE_URL;
+  if (configured) {
+    return configured.replace(/\/$/, "");
+  }
+
+  const forwardedProto = req.get("x-forwarded-proto");
+  const proto = forwardedProto?.split(",")[0]?.trim() ?? req.protocol;
+  const forwardedHost = req.get("x-forwarded-host");
+  const host = forwardedHost?.split(",")[0]?.trim() ?? req.get("host");
+
+  return host ? `${proto}://${host}` : "http://127.0.0.1:3001";
+}
 
 app.use(cors());
 app.use(express.json());
@@ -43,7 +56,7 @@ function spawnYtDlp(args: string[]) {
   });
 }
 
-async function runYtDlp(url: string) {
+async function runYtDlp(url: string, publicBaseUrl: string) {
   const prefix = `media-${randomUUID()}`;
   const outputPath = path.join(downloadsDir, `${prefix}.%(ext)s`);
 
@@ -105,8 +118,13 @@ async function runYtDlp(url: string) {
   };
 }
 
+app.get("/health", (_req, res) => {
+  res.json({ ok: true, service: "goonmp3-api" });
+});
+
 app.post("/api/analyze", async (req, res) => {
   const { url } = req.body as { url?: string };
+  const publicBaseUrl = resolvePublicBaseUrl(req);
 
   if (!url) {
     return res.status(400).json({ error: "A media URL is required." });
@@ -120,7 +138,7 @@ app.post("/api/analyze", async (req, res) => {
   }
 
   try {
-    const data = await runYtDlp(normalized);
+    const data = await runYtDlp(normalized, publicBaseUrl);
     return res.json({
       id: mediaId,
       title: data.title || "Extracted media",

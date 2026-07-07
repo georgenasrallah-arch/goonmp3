@@ -231,7 +231,7 @@ export function MediaDropApp() {
       return;
     }
 
-    const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL?.trim() || "http://localhost:3001";
+    const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL ?? "https://goonmp3-api.loca.lt").trim();
     const directMediaType = inferDirectMediaType(trimmedUrl);
 
     setIsAnalyzing(true);
